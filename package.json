@@ -1,0 +1,43 @@
+{
+  "name": "element-sticky",
+  "version": "1.0.0",
+  "description": "实现类似position:sticky效果，支持top,bottom",
+  "main": "/dist/ElementSticky.js",
+  "files": [
+    "/dist",
+    "/src",
+    "/test"
+  ],
+  "scripts": {
+    "dev": "babel src -d dist --source-maps",
+    "build": "npx rimraf dist && node build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bengda/ElementSticky.git"
+  },
+  "author": "huyk<bengda@outlook.com>",
+  "license": "",
+  "browserslist": "> 0.25%, not dead",
+  "devDependencies": {
+    "@babel/cli": "^7.8.4",
+    "@babel/core": "^7.8.7",
+    "@babel/preset-env": "^7.7.4",
+    "babel-loader": "^8.1.0",
+    "webpack": "^4.42.0"
+  },
+  "keywords": [
+    "sticky",
+    "sticky element",
+    "sticky polyfill",
+    "scroll sticky",
+    "pin",
+    "scroll pin",
+    "粘性布局"
+  ],
+  "dependencies": {
+    "core-js": "^3.6.4",
+    "intersection-observer": "^0.7.0",
+    "resize-observer-polyfill": "^1.5.1"
+  }
+}
