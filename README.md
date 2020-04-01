@@ -72,15 +72,18 @@ ElementSticky(el: string|HTMLElement, options: object)
 
 </br>
 
-项目基于InterSectionObserver API和ResizeObserver API实现，注意滚动容器每次resize时会重新执行初始化
+## 实例方法
++ init
+  - 初始化
++ initObserver
+  - 初始化观察器
++ unobserve
+  - 解除InterSectionObserver观察，解除sticky
++ destroy
+  - 销毁
 
+项目基于InterSectionObserver API和ResizeObserver API实现，目前这两个API的polyfill还是会有些莫名的问题
 
-### 已知bugs或注意点
-1. 在chrome v80.0.3987.149上，如果滚动容器的计算宽度有小数，并且小数的第一位大于等于5(如：220.62)，那么InterSectionObserver API无论无何不会被触发，不知道是否是版本特例？还是我使用姿势不对？
-2. firefox上非块级元素，不会触发InterSectionObserver API，不知道是我写的有问题还是浏览器的bug。代码已经使用div块级元素来包裹目标元素，所以此问题暂时算解决。
-3. IE上absolute方式的sticky的absolute布局表现比较糟糕，因为ie性能太差。如果是局部滚动，就只能监听容器scroll方式并采用absolute布局，这在ie上表现比较糟糕，这是无法解决的。
-4. 已知left,right方向的sticky存在问题（所以暂不支持）
-5. 因为InterSectionObserver API的异步特性，如果目标元素所占布局（宽，高）特别小，那么极有可能回调函数不会被触发，因为滚动时咻的一下就过去了
 
 ### 建议使用场景
 全局滚动容器下需要top和bottom粘性布局，这时使用的是fixed布局

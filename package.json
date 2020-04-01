@@ -1,12 +1,10 @@
 {
   "name": "element-sticky",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "实现类似position:sticky效果，支持top,bottom",
   "main": "/dist/ElementSticky.js",
   "files": [
-    "/dist",
-    "/src",
-    "/test"
+    "/dist/ElementSticky.js"
   ],
   "scripts": {
     "dev": "babel src -d dist --source-maps",

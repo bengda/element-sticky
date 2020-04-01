@@ -37,20 +37,25 @@ import ResizeObserver from 'resize-observer-polyfill';
 /* istanbul ignore next */
 const resizeHandler = function (entries) {
   for (const entry of entries) {
-    const listeners = entry.target.__resizeListeners__ || [];
-    if (listeners.length) {
-      listeners.forEach((fn) => {
-        fn();
-      });
+    const target = entry.target;
+    const listeners = target.__resizeListeners__ || [];
+    if (target.__rs_immediate__ || (!target.__rs_immediate__ && target.__rs_called__)) {
+      if (listeners.length) {
+        listeners.forEach((fn) => {
+          fn(entry);
+        });
+      }
     }
+    target.__rs_called__ = true;
   }
 };
 
 /* istanbul ignore next */
-const addResizeListener = function (element, fn) {
+const addResizeListener = function (element, fn, immediate = true) {
   if (!element.__resizeListeners__) {
     // eslint-disable-next-line no-param-reassign
     element.__resizeListeners__ = [];
+    element.__rs_immediate__ = immediate;
     // eslint-disable-next-line no-param-reassign
     element.__ro__ = new ResizeObserver(resizeHandler);
     element.__ro__.observe(element);
@@ -67,7 +72,10 @@ const removeResizeListener = function (element, fn) {
   element.__resizeListeners__.splice(element.__resizeListeners__.indexOf(fn), 1);
   if (!element.__resizeListeners__.length) {
     element.__ro__.disconnect();
+    element.__ro__ = null;
     element.__resizeListeners__ = null;
+    element.__rs_immediate__ = null;
+    element.__rs_called__ = null;
   }
 };
 
@@ -476,6 +484,17 @@ function assertTRBL(style) {
   }
 }
 
+function debounce(fn, threshold = 100) {
+  const ctx = this;
+  let tId = null;
+  return function d(...args) {
+    clearTimeout(tId);
+    tId = setTimeout(() => {
+      fn.apply(ctx, args);
+    }, threshold);
+  }
+}
+
 /**
  * 默认触发函数
  * @callback TriggerCallback
@@ -682,13 +701,17 @@ export default class ElementSticky {
 
   init() {
     const ctx = this.context();
+
+    if (ctx._inited) {
+      return;
+    }
+
     if (ctx.options.debug) {
       // eslint-disable-next-line no-console
       console.log('[ElementSticky:init]');
     }
 
     ctx.unobserve();
-    ctx.unsticky();
 
     ctx.elOriginStyle = ctx.el.getAttribute('style');
     ctx.elParentNode = getParentNode(ctx.el);
@@ -782,12 +805,8 @@ export default class ElementSticky {
       ctx.ElBoxHolder.appendChild(ctx.el);
     }
 
-    if (!ctx.elScrollerListenerWrap) {
-      ctx.elScrollerListenerWrap = ctx.elScrollerListener.bind(ctx);
-    }
-    if (!ctx.elScrollerResizeListenerWrap) {
-      ctx.elScrollerResizeListenerWrap = ctx.init.bind(ctx);
-    }
+    ctx.elScrollerListenerWrap = ctx.elScrollerListener.bind(ctx);
+
     // 观察的根节点,null表示使用顶级文档视窗
     ctx.observeRoot = ctx.elScroller;
     // 要观察的元素
@@ -817,11 +836,6 @@ export default class ElementSticky {
     ].map(item => (isValidStyleNumericValue(item) ? parseStyleNumericValue(item) : '0px')).join(' ');
 
     ctx.initObserver();
-    if (ctx.elScroller && !ctx.elScrollerResizeExeced) {
-      // removeResizeListener(ctx.elScroller, ctx.elScrollerResizeListenerWrap);
-      addResizeListener(ctx.elScroller, ctx.elScrollerResizeListenerWrap);
-      ctx.elScrollerResizeExeced = true;
-    }
 
 
     if (typeof ctx.options.afterInited === 'function') {
@@ -831,6 +845,8 @@ export default class ElementSticky {
     if (ctx.options.debug) {
       console.log('ElementSticky:inited', ctx);
     }
+    ctx._inited = true;
+    return;
   }
 
   getViewportRect() {
@@ -904,11 +920,23 @@ export default class ElementSticky {
       );
     }
 
-
-    setStyle(ctx.el, {
-      top, right, bottom, left,
-    });
+    const styleEntries = [
+      ['top', top],
+      ['right', right],
+      ['bottom', bottom],
+      ['left', left],
+    ].filter(({ 1: value}) => !!value);
+    if (styleEntries.length === 1) {
+      setStyle(ctx.el, styleEntries[0][0], styleEntries[0][1]);
+    } else if (styleEntries.length > 1) {
+      const style = {};
+      styleEntries.forEach(([prop, value]) => {
+        style[prop] = value;
+      });
+      setStyle(ctx.el, style);
+    }
   }
+
 
   setElBoxHolderStyles() {
     const ctx = this.context();
@@ -960,6 +988,9 @@ export default class ElementSticky {
       ctx.observer.disconnect();
       ctx.observer = null;
     }
+
+
+    ctx.unsticky();
   }
 
   initObserver() {
@@ -976,6 +1007,7 @@ export default class ElementSticky {
       threshold: ctx.options.observeThreshold,
     });
     ctx.observer.observe(ctx.observeEl);
+
   }
 
   observeCallback(entries) {
@@ -1015,6 +1047,7 @@ export default class ElementSticky {
       if (ctx.elScroller && ctx.stickyByAbsolute) {
         ctx.elScrollerListener();
         on(ctx.elScroller, 'scroll', ctx.elScrollerListenerWrap, { passive: true });
+        addResizeListener(ctx.elScroller, ctx.elScrollerListenerWrap, false);
       }
 
       ctx.stickyed = true;
@@ -1032,6 +1065,7 @@ export default class ElementSticky {
     if (ctx.stickyed && ctx.elParentNode && ctx.ElBoxHolder) {
       if (ctx.elScroller) {
         off(ctx.elScroller, 'scroll', ctx.elScrollerListenerWrap);
+        removeResizeListener(ctx.elScroller, ctx.elScrollerListenerWrap);
       }
       ctx.el.setAttribute('style', ctx.elOriginStyle || '');
       ctx.ElBoxHolder.setAttribute('style', '');
@@ -1053,10 +1087,6 @@ export default class ElementSticky {
     }
 
     ctx.unobserve();
-    ctx.unsticky();
-    if (ctx.elScroller && ctx.elScrollerResizeListenerWrap) {
-      removeResizeListener(ctx.elScroller, ctx.elScrollerResizeListenerWrap);
-    }
 
     // 还原元素位置
     if (ctx.elParentNode) {

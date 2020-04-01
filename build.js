@@ -13,13 +13,13 @@ var baseConfig = {
   //   libraryExport: 'default',
   //   umdNamedDefine: true,
   // },
-  module: {
-    rules: [{
-      test: /\.js$/,
-      loader: 'babel-loader',
-      exclude: /(node_modules|bower_components|test)/,
-    }],
-  },
+  // module: {
+  //   rules: [{
+  //     test: /\.js$/,
+  //     loader: 'babel-loader',
+  //     exclude: /(node_modules|bower_components|test)/,
+  //   }],
+  // },
   resolve: {
     extensions: ['.js'],
   },
@@ -35,10 +35,17 @@ var config1 = { ...baseConfig,
     libraryExport: 'default',
     umdNamedDefine: true,
   },
+  module: {
+    rules: [{
+      test: /\.js$/,
+      loader: 'babel-loader',
+      exclude: /(node_modules|bower_components|test)/,
+    }],
+  },
 };
 
 var config2 = { ...baseConfig,
-  entry: path.resolve(__dirname, 'src/ElementSticky.polyfilled.js'),
+  entry: path.resolve(__dirname, 'src/ElementSticky.js'),
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'ElementSticky.polyfilled.js',
@@ -46,6 +53,22 @@ var config2 = { ...baseConfig,
     libraryTarget: 'umd',
     libraryExport: 'default',
     umdNamedDefine: true,
+  },
+  module: {
+    rules: [{
+      test: /\.js$/,
+      loader: 'babel-loader',
+      exclude: /(node_modules|bower_components|test)/,
+      query: {
+        "presets": [[
+          "@babel/preset-env",
+          {
+            "corejs": 3,
+            "useBuiltIns": "usage"
+          }
+        ]]
+      },
+    }],
   },
 };
 
